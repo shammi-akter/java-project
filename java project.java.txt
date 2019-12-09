@@ -1,0 +1,232 @@
+package GUI;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.io.*;
+import java.util.*;
+
+import javax.swing.*;
+import javax.swing.table.*;
+
+import Database.*;
+import entity.*;
+import file.*;
+
+public class databaseframe extends JFrame implements ActionListener {
+	
+	JFrame frame1;
+	String[] columnNames;
+	//Object[][] data;
+	JTable table;
+	ScrollPane vertical,header;
+	JButton showbutton,sendbutton,exitbutton,openbutton,printbutton;
+	Object[] row;
+	DefaultTableModel model;
+	Random rand = new Random();
+	int carspassed = rand.nextInt(10);
+	int count,listcount;
+	int id,speed;
+	int[][] info;
+	
+	public databaseframe()  {
+		
+		columnNames = new String[] {"Plate number",
+			"speed",
+            "Name",
+            "Address",
+            "Phone(+880)",
+           };
+		//data = new Object[][] {};
+		
+		
+		
+        frame1 = new JFrame("List of Vehicles");
+        frame1.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        frame1.setBounds(500, 100, 800, 600);
+        frame1.setResizable(false);
+        frame1.setVisible(true);
+        frame1.setLayout(null);
+        
+        model = new DefaultTableModel(columnNames,0);
+        
+        table = new JTable(model);
+        
+        header = new ScrollPane();
+		header.setBounds(10, 10, 780, 30);
+		header.add(table.getTableHeader());
+        
+        vertical = new ScrollPane();
+		vertical.setBounds(10,40,780,400);
+		vertical.add(table);
+		
+		showbutton = new JButton("SHOW DATA OF LAST 24 HOURS");
+		showbutton.setBounds(200,460,400,80);
+		showbutton.setFont(new Font("Arial", Font.PLAIN, 15));
+		showbutton.addActionListener(this);
+		
+		sendbutton = new JButton("SEND FINE");
+		sendbutton.setBounds(350,460,200,80);
+		sendbutton.setFont(new Font("Arial", Font.PLAIN, 15));
+		sendbutton.addActionListener(this);
+		
+		exitbutton = new JButton("EXIT");
+		exitbutton.setBounds(570,460,200,80);
+		exitbutton.setFont(new Font("Arial", Font.PLAIN, 15));
+		exitbutton.addActionListener(this);
+		
+		openbutton = new JButton("OPEN FILE");
+		openbutton.setBounds(350,460,200,80);
+		openbutton.setFont(new Font("Arial", Font.PLAIN, 15));
+		openbutton.addActionListener(this);
+		
+		printbutton = new JButton("PRINT AND DELETE FILES");
+		printbutton.setBounds(100,460,230,80);
+		printbutton.setFont(new Font("Arial", Font.PLAIN, 15));
+		printbutton.addActionListener(this);
+		
+		frame1.add(vertical);
+		frame1.add(showbutton);
+		frame1.add(header);
+		}
+	public void actionPerformed(ActionEvent event) {
+		
+		
+		if(event.getSource() == showbutton)
+		{
+			count c = new count();
+			for(int i=0;i<carspassed;i++) {
+			id = rand.nextInt(20);
+			speed = rand.nextInt(120);
+			info = new int[][] {{id,speed}};
+			getidfile gf = new getidfile();
+			getID getid = gf.getid(info[0][0],info[0][1]);
+			if(info[0][1]>=60){
+				gf.insertID(getid);
+				frame1.repaint();
+
+				}
+			}
+			
+			if(c.getcount()!=0)
+			{
+					
+				DatabaseConnection dbc = new DatabaseConnection();
+				String query = "SELECT pnumber,speed,name,address,phone FROM sms.speeddatabase;";
+				try
+				{
+					System.out.println(query);
+					dbc.openConnection();
+					dbc.result = dbc.st.executeQuery(query);
+				
+					while(dbc.result.next())
+					{
+						row = new Object[] {dbc.result.getInt("pnumber"),dbc.result.getInt("speed"),dbc.result.getString("name"),dbc.result.getString("address"),dbc.result.getInt("phone")};
+						model.addRow(row);
+					}
+				}
+		        catch(Exception ex)
+					{
+						System.out.println("Exception : " +ex.getMessage());
+			        }
+				dbc.closeConnection();
+				frame1.remove(showbutton);
+				frame1.add(exitbutton);
+				frame1.add(sendbutton);
+				frame1.repaint();
+				
+			}
+			else
+			{
+				JOptionPane.showMessageDialog(this, "NO CARS EXCEEDED SPEED LIMIT");
+				frame1.remove(showbutton);
+				frame1.add(exitbutton);
+				frame1.add(sendbutton);
+				frame1.repaint();
+				
+			}
+		}
+		
+		if(event.getSource() == sendbutton) {
+			
+			count c1 = new count();
+
+			if(c1.getcount()!=0)
+			{
+
+				DatabaseConnection dbc = new DatabaseConnection();
+				String query = "SELECT pnumber,speed,name,address,phone FROM sms.speeddatabase;";
+				try
+				{
+					System.out.println(query);
+					dbc.openConnection();
+					dbc.result = dbc.st.executeQuery(query);
+				
+					while(dbc.result.next())
+					{
+						new filesave().savefile(dbc.result.getInt("pnumber"),dbc.result.getInt("speed"),dbc.result.getString("name"),dbc.result.getString("address"),dbc.result.getInt("phone"));
+						
+					}
+				}
+		        catch(Exception ex)
+					{
+						System.out.println("Exception : " +ex.getMessage());
+			        }
+				dbc.closeConnection();
+				
+					getidfile gf = new getidfile();
+					gf.deleteUsers();
+					
+					frame1.remove(sendbutton);
+					//row = new Object[] {};
+					for(int i=model.getRowCount()-1;i>=0;i--)
+					{
+						model.removeRow(i);
+						frame1.repaint();
+					}
+					frame1.add(exitbutton);
+					frame1.add(openbutton);
+					frame1.add(printbutton);
+				    //frame1.repaint();
+					frame1.repaint();
+					JOptionPane.showMessageDialog(this, "FINE SENT");
+			}
+			else
+				{
+					JOptionPane.showMessageDialog(this, "NO FINE TO SENT");
+					frame1.remove(sendbutton);
+					frame1.add(exitbutton);
+					frame1.add(openbutton);
+					frame1.repaint();
+				}
+		}
+		if(event.getSource() == exitbutton)
+		{
+			System.exit(0);
+		}
+		if(event.getSource() == openbutton)
+		{
+			File file = new File("C:\\Users\\Shadman\\Desktop\\Fine\\");
+		    Desktop desktop = Desktop.getDesktop();
+		    try {
+				desktop.open(file);
+			} catch (IOException e) {
+				
+				e.printStackTrace();
+			}
+		    frame1.add(printbutton);
+		    frame1.repaint();
+		}
+		if(event.getSource() == printbutton)
+		{
+			File file = new File("C:\\Users\\Shadman\\Desktop\\Fine\\");
+			File[] files = file.listFiles();
+			if(files != null){
+	            for(int i = 0; i < files.length; i++) 
+	            	{
+	                	files[i].delete();
+	                }
+			}
+		}
+	}
+}
+
